@@ -1,41 +1,53 @@
-import express from 'express';
-import bodyParser from 'body-parser';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import express from "express";
+import bodyParser from "body-parser";
+import path from "path";
+import { fileURLToPath } from "url";
+import fs from "fs";
 
-import qrRouter from './qr.js';
-import pairRouter from './pair.js';
+import qrRouter from "./qr.js";
+import pairRouter from "./pair.js";
 
 const app = express();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const PORT = process.env.PORT || 8000;
+// 🔑 Ensure auth folder exists
+const authPath = path.join(__dirname, "auth_info");
+if (!fs.existsSync(authPath)) {
+  fs.mkdirSync(authPath);
+}
 
-import('events').then(events => {
-    events.EventEmitter.defaultMaxListeners = 500;
+const PORT = process.env.PORT || 3000;
+
+// Prevent memory warnings
+import("events").then(events => {
+  events.EventEmitter.defaultMaxListeners = 1000;
 });
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(express.static(__dirname));
 
-app.use('/qr', qrRouter);
-app.use('/code', pairRouter);
+// ✅ Serve frontend correctly
+app.use(express.static(path.join(__dirname, "public")));
 
-app.use('/pair', async (req, res) => {
-    res.sendFile(path.join(__dirname, 'pair.html'));
+// Routes
+app.use("/qr", qrRouter);
+app.use("/code", pairRouter);
+
+// Pages
+app.get("/pair", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "pair.html"));
 });
-app.use('/qrpage', (req, res) => {
-    res.sendFile(path.join(__dirname, 'qr.html'));
+
+app.get("/qrpage", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "qr.html"));
 });
-app.use('/', async (req, res) => {
-    res.sendFile(path.join(__dirname, 'main.html'));
+
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "main.html"));
 });
 
 app.listen(PORT, () => {
-    console.log(`YoutTube: @Xchristech\nGitHub: @Xchristech2\nServer running on http://localhost:${PORT}`);
+  console.log("Server running on port " + PORT);
 });
-
-export default app;
